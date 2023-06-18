@@ -358,6 +358,25 @@ void FACTOR(SYMSET FSYS, int LEV, int &TX) {
 		  case PROCEDUR: Error(21); break;
 		}
 	  GetSym();
+    if(SYM==PLUSPLUS||SYM==MINUSMINUS){       
+            GEN(LIT,0,1);                   // 将常数 1 放入栈顶
+            if(SYM==PLUSPLUS){                // i++ 
+                GEN(OPR,0,2);               // 次栈顶 = 次栈顶 + 栈顶
+                GEN(STO,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);     // 将栈顶送入变量单元
+                GEN(LOD,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);     // 将变量送入栈顶
+                // 加了 1 的减去 1
+                GEN(LIT,0,1);
+                GEN(OPR,0,3);
+            }else if(SYM==MINUSMINUS){          // i-- 
+                GEN(OPR,0,3);               // 次栈顶 = 次栈顶 - 栈顶
+                GEN(STO,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);     // 将栈顶送入变量单元
+                GEN(LOD,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);     // 将变量送入栈顶
+                // 减了 1 的加上 1
+                GEN(LIT,0,1);
+                GEN(OPR,0,2);
+            }
+            GetSym();
+        }
 	}
 	else
 	  if (SYM==NUMBER) {
@@ -387,10 +406,51 @@ void TERM(SYMSET FSYS, int LEV, int &TX) {  /*TERM*/
 //---------------------------------------------------------------------------
 void EXPRESSION(SYMSET FSYS, int LEV, int &TX) {
   SYMBOL ADDOP;
+  int i;
   if (SYM==PLUS || SYM==MINUS) {
     ADDOP=SYM; GetSym();
     TERM(SymSetUnion(FSYS,SymSetNew(PLUS,MINUS)),LEV,TX);
     if (ADDOP==MINUS) GEN(OPR,0,1);
+  }
+  else if(SYM==PLUSPLUS){     // ++i
+      GetSym();
+      if(SYM==IDENT){
+          i=POSITION(ID,TX);
+          if(i==0) Error(11);
+          else if(TABLE[i].KIND!=VARIABLE){
+              Error(12);
+              i=0;
+          }
+          if(i!=0) GEN(LOD,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+          GEN(LIT,0,1);
+          GEN(OPR,0,2);
+          if(i!=0){
+              GEN(STO,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+              GEN(LOD,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+          }
+          GetSym();
+      }
+      else Error(45);
+  }
+  else if(SYM==MINUSMINUS){     // --i
+      GetSym();
+      if(SYM==IDENT){
+          i=POSITION(ID,TX);
+          if(i==0) Error(11);
+          else if(TABLE[i].KIND!=VARIABLE){
+              Error(12);
+              i=0;
+          }
+          if(i!=0) GEN(LOD,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+          GEN(LIT,0,1);
+          GEN(OPR,0,3);
+          if(i!=0){
+              GEN(STO,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+              GEN(LOD,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+          }
+          GetSym();
+      }
+      else Error(45);
   }
   else TERM(SymSetUnion(FSYS,SymSetNew(PLUS,MINUS)),LEV,TX);
   while (SYM==PLUS || SYM==MINUS) {
@@ -450,9 +510,60 @@ void STATEMENT(SYMSET FSYS,int LEV,int &TX) {   /*STATEMENT*/
         GEN(OPR,0,3);
         if (i!=0) GEN(STO,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
     }
-		
-		else Error(13);
+    else if(SYM==PLUSPLUS) {          // i++
+        if(i!=0)
+            GEN(LOD,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+        GEN(LIT,0,1);
+        GEN(OPR,0,2);
+        if(i!=0)
+            GEN(STO,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+        GetSym();
+        }
+        else if(SYM==MINUSMINUS) {          // i--
+            if(i!=0)
+                GEN(LOD,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+            GEN(LIT,0,1);
+            GEN(OPR,0,3);
+            if(i!=0)
+                GEN(STO,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+            GetSym();
+        }
+    else Error(13);
 		break;
+  case PLUSPLUS:   // 处理 ++i
+    GetSym();
+    if(SYM==IDENT){
+        i=POSITION(ID,TX);
+        if(i==0) Error(11);
+        else if(TABLE[i].KIND!=VARIABLE){
+            Error(12);
+            i=0;
+        }
+        if(i!=0) GEN(LOD,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+        GEN(LIT,0,1);
+        GEN(OPR,0,2);
+        if(i!=0) GEN(STO,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+        GetSym();
+    }
+    else Error(45);
+    break;
+  case MINUSMINUS: // 处理 --i
+    GetSym();
+    if(SYM==IDENT){
+        i=POSITION(ID,TX);
+        if(i==0) Error(11);
+        else if(TABLE[i].KIND!=VARIABLE){
+            Error(12);
+            i=0;
+        }
+        if(i!=0) GEN(LOD,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+        GEN(LIT,0,1);
+        GEN(OPR,0,3);
+        if(i!=0) GEN(STO,LEV-TABLE[i].vp.LEVEL,TABLE[i].vp.ADR);
+        GetSym();
+    }
+    else Error(45);
+    break;
 	case READSYM:
 		GetSym();
 		if (SYM!=LPAREN) Error(34);
@@ -540,43 +651,35 @@ void STATEMENT(SYMSET FSYS,int LEV,int &TX) {   /*STATEMENT*/
 		CODE[CX2].A=CX;
 		break;
 	// 用来检验保留字是否添加成功的标志
-    case FORSYM:
-        GetSym();
-        Form1->printfs("检测到保留字：FORSYM");
-        break;
-    case TOSYM:
-        GetSym();
-        Form1->printfs("检测到保留字：TOSYM");
-        break;
-    case ELSESYM:
-        GetSym();
-        Form1->printfs("检测到保留字：ELSESYM");
-        break;
-    case RETURNSYM:
-        GetSym();
-        Form1->printfs("检测到保留字：RETURNSYM");
-        break;
-    case DOWNTOSYM:
-        GetSym();
-        Form1->printfs("检测到保留字：DOWNTOSYM");
-        break;
-	// 用来检验运算符是否添加成功的标志。
-    case PLUSBECOMES:
-        GetSym();
-        Form1->printfs("检测到运算符：+= ");
-        break;
-    case MINUSBECOMES:
-        GetSym();
-        Form1->printfs("检测到运算符：-=");
-        break;
-    case PLUSPLUS:
-        GetSym();
-        Form1->printfs("检测到运算符：++");
-        break;
-    case MINUSMINUS:
-        GetSym();
-        Form1->printfs("检测到运算符：--");
-        break;
+  case FORSYM:
+      GetSym();
+      Form1->printfs("检测到保留字：FORSYM");
+      break;
+  case TOSYM:
+      GetSym();
+      Form1->printfs("检测到保留字：TOSYM");
+      break;
+  case ELSESYM:
+      GetSym();
+      Form1->printfs("检测到保留字：ELSESYM");
+      break;
+  case RETURNSYM:
+      GetSym();
+      Form1->printfs("检测到保留字：RETURNSYM");
+      break;
+  case DOWNTOSYM:
+      GetSym();
+      Form1->printfs("检测到保留字：DOWNTOSYM");
+      break;
+// 用来检验运算符是否添加成功的标志。
+  case PLUSBECOMES:
+      GetSym();
+      Form1->printfs("检测到运算符：+= ");
+      break;
+  case MINUSBECOMES:
+      GetSym();
+      Form1->printfs("检测到运算符：-=");
+      break;
   }
   TEST(FSYS,SymSetNULL(),19);
 } /*STATEMENT*/
