@@ -18,7 +18,6 @@ const  LEVMAX=   3;  /* MAX DEPTH OF BLOCK NESTING */
 const  CXMAX = 200;  /* SIZE OF CODE ARRAY */
 
 const int SYMNUM = 42; //SYM¸öÊý
-
 typedef enum { NUL,     IDENT,    NUMBER,    PLUS,     MINUS,   TIMES,
 	      SLASH,    ODDSYM,   EQL,       NEQ,      LSS,     LEQ, 
               GTR,      GEQ,      LPAREN,    RPAREN,   COMMA,   SEMICOLON,
