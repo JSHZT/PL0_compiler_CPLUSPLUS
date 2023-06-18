@@ -1,0 +1,14 @@
+*.d
+*.slo
+*.lo
+*.o
+*.obj
+*.tlog
+*.lastbuildstate
+*.idb
+*.pdb
+*~
+*.swp
+*.PL0
+*.COD
+*.exe
